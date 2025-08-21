@@ -63,7 +63,9 @@ def fast_kruskal(points, exclude, epsilon=0.1, debug=True):
     maximum = 0
     minimum = math.inf
     for i, j in combinations(range(len(points)), 2):
-        dist = np.linalg.norm(points[i] - points[j])
+        dist = np.linalg.norm(
+            points[i].astype(np.float64) - points[j].astype(np.float64)
+        )
         if dist > maximum:
             maximum = dist
         if dist < minimum:

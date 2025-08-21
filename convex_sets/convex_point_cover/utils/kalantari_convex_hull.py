@@ -7,7 +7,7 @@ class KalantariConvexHull:
     # If there is no such plane, it finds a point in the convex hull, which is by a factor
     # of epsilon closer to the point than the current pivot, which is one of the input points of the convex hull.
     def __init__(self, points, epsilon=0.1):
-        self.points = points
+        self.points = [point.astype(np.float64) for point in points]
         self.epsilon = epsilon
         # If previous queries generated separating hyperplanes, store them here
         self.separating_hyperplanes = []
@@ -15,7 +15,7 @@ class KalantariConvexHull:
     def plane_separates(self, plane, point):
         normal, offset = plane
         # Check if the new point is on the negative side of the hyperplane
-        return np.dot(normal, point) + offset < 0
+        return np.dot(normal, point.astype(np.float64)) + offset < 0
 
     def add_point(self, point):
         # Convert point to 32-bit precision and add to points list
