@@ -21,7 +21,8 @@ from convex_point_cover.utils.kalantari_convex_hull import (
 # Inspired by Kruskal's algorithm: Try to add edges in increasing order of distance,
 # but only if the new larger component does not contain an excluded point in it's convex hull
 # Utilizes Kalantari's triangle algorithm
-def fast_kruskal(points, exclude, epsilon=0.1, debug=True):
+# If delta is not none, a point is considered "inside" if it's within delta of the convex hull.
+def fast_kruskal(points, exclude, epsilon=0.1, debug=True, delta=None):
     # Find root point for each connected component
     def find(parent, i):
         if parent[i] == i:
@@ -52,7 +53,7 @@ def fast_kruskal(points, exclude, epsilon=0.1, debug=True):
         return list(components.values())
 
     # Start by checking if one convex set is enough:
-    hull = KalantariConvexHull(points, epsilon=epsilon)
+    hull = KalantariConvexHull(points, epsilon=epsilon, delta=delta)
     if not any(hull.is_inside_hull(point) for point in exclude):
         print("All points in one convex set, returning the set...")
         return [points]
@@ -105,7 +106,7 @@ def fast_kruskal(points, exclude, epsilon=0.1, debug=True):
                 ]
             )
 
-            hull = KalantariConvexHull(new_points, epsilon=epsilon)
+            hull = KalantariConvexHull(new_points, epsilon=epsilon, delta=delta)
             if not any(hull.is_inside_hull(point) for point in exclude):
                 union(parent, rank, set_u, set_v)
                 # print()

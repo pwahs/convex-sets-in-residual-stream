@@ -76,7 +76,7 @@ def get_datasets():
         dataset1,
         dataset2,
         generate_random_dataset(20, 20, 4, seed=0),
-        generate_random_dataset(4000, 4000, 10, seed=0),
+        generate_random_dataset(1000, 1000, 10, seed=0),
         generate_random_dataset(20, 100, 6, seed=0),
     ]
 

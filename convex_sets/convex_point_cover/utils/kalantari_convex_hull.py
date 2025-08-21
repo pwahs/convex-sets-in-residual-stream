@@ -6,16 +6,19 @@ class KalantariConvexHull:
     # as described in https://arxiv.org/pdf/1204.1873
     # If there is no such plane, it finds a point in the convex hull, which is by a factor
     # of epsilon closer to the point than the current pivot, which is one of the input points of the convex hull.
-    def __init__(self, points, epsilon=0.1):
+    # If delta is not None, a point is considered "inside" if it's within delta of the convex hull. In this case,
+    # epsilon is an absolute error, not a relative one.
+    def __init__(self, points, epsilon=0.1, delta = None):
         self.points = [point.astype(np.float64) for point in points]
         self.epsilon = epsilon
+        self.delta = delta
         # If previous queries generated separating hyperplanes, store them here
         self.separating_hyperplanes = []
 
     def plane_separates(self, plane, point):
         normal, offset = plane
         # Check if the new point is on the negative side of the hyperplane
-        return np.dot(normal, point.astype(np.float64)) + offset < 0
+        return np.dot(normal, point.astype(np.float64)) + offset < (0 if self.delta is None else -self.delta)
 
     def add_point(self, point):
         # Convert point to 32-bit precision and add to points list
@@ -39,16 +42,20 @@ class KalantariConvexHull:
         p_prime = v
 
         while True:
-            if np.linalg.norm(p_prime - point) < self.epsilon * np.linalg.norm(
+            if (self.delta is None) and (np.linalg.norm(p_prime - point) < self.epsilon * np.linalg.norm(
                 v - point
-            ):
+            )):
                 # Found approximation, point is likely inside the convex hull
                 return True
+            if (not self.delta is None) and (np.linalg.norm(p_prime - point) < self.delta + self.epsilon):
+                # Point is within self.delta + self.epsilon of the convex hull, so it is considered inside
+                return True
             # Find a new pivot v with d(p', v) >= d(p, v)
-            found = False
+            found_new_pivot = False
             # Project all points onto the p_prime - point line
             direction = point - p_prime
-            direction = direction / np.linalg.norm(direction)
+            point_distance = np.linalg.norm(direction)
+            direction = direction / point_distance # normalize direction
             max_projection = float("-inf")
             best_pivot = None
 
@@ -58,18 +65,23 @@ class KalantariConvexHull:
                     max_projection = projection
                     best_pivot = candidate
 
-            if np.linalg.norm(p_prime - best_pivot) >= np.linalg.norm(
-                point - best_pivot
-            ):
+            if (self.delta is None) and point_distance <= 2 * max_projection:
+            # if np.linalg.norm(p_prime - best_pivot) >= np.linalg.norm(
+            #     point - best_pivot
+            # ): # Is the bisector of p_prime to point not a separating hyperplane?
                 v = best_pivot
-                found = True
+                found_new_pivot = True
+            if (not self.delta is None) and point_distance <= 2 * max_projection + self.delta:
+                # if we have a delta, make sure that the separating hyperplane at max_projection is at least delta away from point
+                v = best_pivot
+                found_new_pivot = True
             # Just any, not necessarily the best pivot:
             # for pivot in self.points:
             #     if np.linalg.norm(p_prime - pivot) >= np.linalg.norm(point - pivot):
             #         v = pivot
             #         found = True
             #         break
-            if not found:
+            if not found_new_pivot:
                 # p' is a witness of separation, the bisecting hyperplane between p' and p separates
                 # the point from the convex hull
                 # Calculate the line direction from point to p_prime
@@ -86,7 +98,7 @@ class KalantariConvexHull:
                     if projection < min_distance:
                         min_distance = projection
                         closest_hull_point = hull_point
-                if min_distance <= 0:
+                if min_distance <= (0 if self.delta is None else self.delta):
                     original_options = np.get_printoptions()
 
                     # Set options to print full arrays
@@ -96,7 +108,7 @@ class KalantariConvexHull:
                         "Error, hyperplane is not separating for unknown reason. Data:"
                     )
                     print(
-                        f"{len(self.points)} points, distance p_prime to point {np.linalg.norm(p_prime - point)}, min_distance {min_distance}."
+                        f"{len(self.points)} points, distance p_prime to point {np.linalg.norm(p_prime - point)}, min_distance {min_distance}, delta {self.delta}."
                     )
                     print(f"Point {point}")
                     print(f"p_prime {p_prime}")

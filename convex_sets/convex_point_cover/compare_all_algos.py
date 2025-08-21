@@ -49,7 +49,7 @@ def compare_algos(datasets):
         print(".")
 
         fast_kruskal_result = len(
-            fast_kruskal(dataset["include"], dataset["exclude"], epsilon=0.01)
+            fast_kruskal(dataset["include"], dataset["exclude"], epsilon=0.001, delta=0.005)
         )
 
         print(
