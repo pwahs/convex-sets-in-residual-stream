@@ -51,6 +51,13 @@ def fast_kruskal(points, exclude, epsilon=0.1, debug=True):
 
         return list(components.values())
 
+    # Start by checking if one convex set is enough:
+    hull = KalantariConvexHull(points, epsilon=epsilon)
+    if not any(hull.is_inside_hull(point) for point in exclude):
+        print("All points in one convex set, returning the set...")
+        return [points]
+    print("Not a single convex set, proceeding with Kruskal's algorithm...")
+
     # Generate all edges, sort by length
     edges = []
     maximum = 0

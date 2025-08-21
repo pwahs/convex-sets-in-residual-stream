@@ -18,7 +18,8 @@ class KalantariConvexHull:
         return np.dot(normal, point) + offset < 0
 
     def add_point(self, point):
-        self.points.append(point)
+        # Convert point to 32-bit precision and add to points list
+        self.points.append(point.astype(np.float64))
         # Only keep planes that also have point on the right side
         self.separating_hyperplanes = [
             plane
@@ -26,7 +27,8 @@ class KalantariConvexHull:
             if self.plane_separates(plane, point) == False
         ]
 
-    def is_inside_hull(self, point):
+    def is_inside_hull(self, point16b):
+        point = point16b.astype(np.float64)
         for plane in self.separating_hyperplanes:
             if self.plane_separates(plane, point):
                 return False
@@ -84,7 +86,33 @@ class KalantariConvexHull:
                     if projection < min_distance:
                         min_distance = projection
                         closest_hull_point = hull_point
-                assert min_distance > 0  # because p_prime is a witness of separation
+                if min_distance <= 0:
+                    original_options = np.get_printoptions()
+
+                    # Set options to print full arrays
+                    np.set_printoptions(threshold=np.inf, precision=4)
+
+                    print(
+                        "Error, hyperplane is not separating for unknown reason. Data:"
+                    )
+                    print(
+                        f"{len(self.points)} points, distance p_prime to point {np.linalg.norm(p_prime - point)}, min_distance {min_distance}."
+                    )
+                    print(f"Point {point}")
+                    print(f"p_prime {p_prime}")
+                    print(f"Closest hull point {closest_hull_point}")
+                    print(f"v {v}")
+                    print(f"Normal {normal}")
+
+                    for i, hull_point in enumerate(self.points[:5]):
+                        print(f"Hull point {i} of {len(self.points)}: {hull_point}")
+
+                    # Restore original options
+                    np.set_printoptions(**original_options)
+
+                    assert (
+                        min_distance > 0
+                    )  # because p_prime is a witness of separation
                 # Create separating hyperplane that goes through closest_hull_point
                 offset = -np.dot(normal, closest_hull_point)
                 self.separating_hyperplanes.append((normal, offset))
